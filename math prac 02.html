@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Practice Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            overflow: hidden;
+            -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* IE 10 and IE 11 */
+            user-select: none; /* Standard syntax */
+        }
+
+        .main-button {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .main-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        #game-area {
+            border: 2px solid #9c88ff;
+            border-radius: 1rem;
+            margin: 1rem;
+            box-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #9c88ff, 0 0 20px #9c88ff, inset 0 0 10px #9c88ff;
+        }
+
+        @keyframes rise {
+            from {
+                transform: translateY(0) translateX(-50%) scale(1);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-105vh) translateX(-50%) scale(1.1);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -150px;
+            /* The 'left' property is set dynamically in JS */
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5), rgba(227, 213, 255, 0.3));
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.3), 0 0 20px rgba(190, 150, 255, 0.4);
+            animation-name: rise;
+            animation-timing-function: linear;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #1a1a2e;
+            text-shadow: 0 0 5px rgba(255,255,255,0.7);
+        }
+
+        .burst-effect {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            top: 25px; /* Position near the top */
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(227, 213, 255,0.6) 50%, rgba(190, 150, 255,0) 70%);
+            transform: translate(-50%, -50%);
+            animation: burst-spread 0.5s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes burst-spread {
+            from {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(30);
+                opacity: 0;
+            }
+        }
+        
+        .prime-bubble {
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .prime-bubble:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(138, 43, 226, 0.8);
+        }
+
+        .keypad-key {
+            transition: all 0.1s ease;
+        }
+        .keypad-key:active {
+            transform: scale(0.95);
+            background-color: #4a4a7c;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen">
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="w-full h-full flex flex-col items-center justify-center p-4 transition-opacity duration-500">
+        <h1 class="text-4xl md:text-6xl font-bold mb-2 text-center" style="color: #9c88ff;">Math Whiz</h1>
+        <p class="text-lg md:text-xl mb-12 text-gray-300">Select a category to practice</p>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 w-full max-w-4xl">
+            <button data-game="squares" class="main-button text-lg font-semibold py-6 px-4 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl">Squares & Roots</button>
+            <button data-game="cubes" class="main-button text-lg font-semibold py-6 px-4 bg-gradient-to-br from-teal-400 to-blue-500 rounded-xl">Cubes & Roots</button>
+            <button data-game="power_2" class="main-button text-lg font-semibold py-6 px-4 bg-gradient-to-br from-pink-500 to-orange-500 rounded-xl">Powers of 2</button>
+            <button data-game="power_3" class="main-button text-lg font-semibold py-6 px-4 bg-gradient-to-br from-green-400 to-cyan-500 rounded-xl">Powers of 3</button>
+            <button data-game="factorials" class="main-button text-lg font-semibold py-6 px-4 bg-gradient-to-br from-red-500 to-yellow-500 rounded-xl">Factorials</button>
+            <button data-game="primes" class="main-button text-lg font-semibold py-6 px-4 bg-gradient-to-br from-gray-600 to-gray-800 rounded-xl col-span-2 md:col-span-1">Prime Numbers</button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="w-full h-full flex flex-col hidden transition-opacity duration-500">
+        <div class="p-4 flex justify-between items-center bg-black bg-opacity-20 z-10">
+            <button id="exit-game-btn" class="main-button text-lg font-semibold py-2 px-5 bg-red-600 rounded-xl hover:bg-red-700">Exit</button>
+            <h2 id="game-title" class="text-2xl font-bold text-center flex-grow">Squares</h2>
+            <div id="score-display" class="text-2xl font-bold bg-purple-600 px-4 py-2 rounded-lg shadow-lg">
+                Score: <span id="score">20</span>
+            </div>
+        </div>
+        
+        <!-- Game Area for bubbles -->
+        <div id="game-area" class="flex-grow w-full relative overflow-hidden">
+             <!-- Prime Question Area -->
+            <div id="prime-question-area" class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-lg text-center p-4">
+                <p id="prime-question" class="text-2xl font-semibold mb-6"></p>
+                <div id="prime-options" class="flex justify-around items-center"></div>
+                <div id="prime-timer" class="mt-4 w-full bg-gray-700 rounded-full h-2.5">
+                    <div id="prime-timer-bar" class="bg-gradient-to-r from-green-400 to-blue-500 h-2.5 rounded-full transition-all duration-100 ease-linear"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Keypad -->
+        <div id="keypad" class="w-full bg-opacity-30 bg-black flex flex-col" style="height: 30%;">
+            <div class="flex-grow p-2 flex flex-col gap-2">
+                <div id="input-display-container" class="w-full h-1/4 bg-black bg-opacity-40 rounded-lg mb-2 flex items-center justify-end px-4 text-4xl font-bold">
+                    <span id="input-display"></span><span class="animate-ping">_</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 flex-grow">
+                    <button class="keypad-key text-2xl font-bold bg-white bg-opacity-20 rounded-lg">1</button>
+                    <button class="keypad-key text-2xl font-bold bg-white bg-opacity-20 rounded-lg">2</button>
+                    <button class="keypad-key text-2xl font-bold bg-white bg-opacity-20 rounded-lg">3</button>
+                    <button class="keypad-key text-2xl font-bold bg-white bg-opacity-20 rounded-lg">4</button>
+                    <button class="keypad-key text-2xl font-bold bg-white bg-opacity-20 rounded-lg">5</button>
+                    <button class="keypad-key text-2xl font-bold bg-white bg-opacity-20 rounded-lg">6</button>
+                    <button class="keypad-key text-2xl font-bold bg-white bg-opacity-20 rounded-lg">7</button>
+                    <button class="keypad-key text-2xl font-bold bg-white bg-opacity-20 rounded-lg">8</button>
+                    <button class="keypad-key text-2xl font-bold bg-white bg-opacity-20 rounded-lg">9</button>
+                    <button class="keypad-key text-2xl font-bold bg-red-500 bg-opacity-80 rounded-lg" data-key="backspace">⌫</button>
+                    <button class="keypad-key text-2xl font-bold bg-white bg-opacity-20 rounded-lg">0</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Range Selector Modal -->
+    <div id="range-modal" class="fixed inset-0 modal-backdrop hidden items-center justify-center p-4 z-20">
+        <div class="bg-gray-800 rounded-2xl p-8 shadow-2xl w-full max-w-md text-center">
+            <h2 id="modal-title" class="text-3xl font-bold mb-6">Set Practice Range</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="from-select" class="block mb-2 font-semibold">From:</label>
+                    <select id="from-select" class="w-full p-3 rounded-lg bg-gray-700 text-white border-2 border-gray-600 focus:outline-none focus:border-purple-500"></select>
+                </div>
+                <div>
+                    <label for="to-select" class="block mb-2 font-semibold">To:</label>
+                    <select id="to-select" class="w-full p-3 rounded-lg bg-gray-700 text-white border-2 border-gray-600 focus:outline-none focus:border-purple-500"></select>
+                </div>
+            </div>
+            <button id="start-game-btn" class="mt-8 w-full py-3 bg-gradient-to-r from-green-400 to-blue-500 rounded-lg text-xl font-bold main-button">Start Game</button>
+             <button id="close-modal-btn" class="mt-4 w-full py-2 bg-gray-600 rounded-lg text-lg font-bold main-button">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- End Game Modal -->
+    <div id="end-game-modal" class="fixed inset-0 modal-backdrop hidden items-center justify-center p-4 z-20">
+        <div class="bg-gray-800 rounded-2xl p-8 shadow-2xl w-full max-w-md text-center">
+            <h2 id="end-game-title" class="text-4xl font-bold mb-4">Congratulations!</h2>
+            <p id="end-game-emoji" class="text-7xl mb-6">🎉</p>
+            <p id="end-game-message" class="text-xl mb-8"></p>
+            <div class="flex flex-col gap-4">
+                <button id="restart-btn" class="w-full py-3 bg-gradient-to-r from-green-400 to-blue-500 rounded-lg text-xl font-bold main-button">Restart Practice</button>
+                <button id="exit-btn" class="w-full py-3 bg-gray-600 rounded-lg text-xl font-bold main-button">Exit to Menu</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM ELEMENTS ---
+        const mainMenu = document.getElementById('main-menu');
+        const gameScreen = document.getElementById('game-screen');
+        const rangeModal = document.getElementById('range-modal');
+        const endGameModal = document.getElementById('end-game-modal');
+        const fromSelect = document.getElementById('from-select');
+        const toSelect = document.getElementById('to-select');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const gameArea = document.getElementById('game-area');
+        const gameTitle = document.getElementById('game-title');
+        const scoreEl = document.getElementById('score');
+        const keypad = document.getElementById('keypad');
+        const inputDisplay = document.getElementById('input-display');
+        const restartBtn = document.getElementById('restart-btn');
+        const exitBtn = document.getElementById('exit-btn');
+        const exitGameBtn = document.getElementById('exit-game-btn');
+        const primeQuestionArea = document.getElementById('prime-question-area');
+        const primeQuestionEl = document.getElementById('prime-question');
+        const primeOptionsEl = document.getElementById('prime-options');
+        const primeTimerBar = document.getElementById('prime-timer-bar');
+
+        // --- GAME DATA ---
+        const gameData = {
+            squares: { title: "Squares & Roots", min: 11, max: 100, data: {}, format: (n) => `${n}²` },
+            cubes: { title: "Cubes & Roots", min: 2, max: 60, data: {}, format: (n) => `${n}³` },
+            power_2: { title: "Powers of 2", min: 1, max: 20, data: {}, format: (n) => `2^${n}` },
+            power_3: { title: "Powers of 3", min: 1, max: 20, data: {}, format: (n) => `3^${n}` },
+            factorials: { title: "Factorials", min: 1, max: 20, data: {}, format: (n) => `${n}!` },
+            primes: { title: "Prime Numbers", min: 0, max: 0, data: [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199] }
+        };
+
+        // --- STATE VARIABLES ---
+        let currentGameType = '';
+        let currentRange = { from: 0, to: 0 };
+        let score = 20;
+        let practiceSet = [];
+        let currentQuestion = null;
+        let userInput = '';
+        let primeTimer;
+
+        // --- DATA GENERATION ---
+        function generateData() {
+            for (let i = 11; i <= 100; i++) gameData.squares.data[i] = i * i;
+            for (let i = 2; i <= 60; i++) gameData.cubes.data[i] = i * i * i;
+            for (let i = 1; i <= 20; i++) gameData.power_2.data[i] = Math.pow(2, i);
+            for (let i = 1; i <= 20; i++) gameData.power_3.data[i] = Math.pow(3, i);
+            let fact = 1;
+            for (let i = 1; i <= 20; i++) {
+                fact *= i;
+                gameData.factorials.data[i] = fact;
+            }
+            const primeData = gameData.primes.data;
+            gameData.primes.min = primeData[0];
+            gameData.primes.max = primeData[primeData.length - 1];
+        }
+        generateData();
+
+
+        // --- UI & SCREEN MANAGEMENT ---
+        function showScreen(screen) {
+            mainMenu.classList.add('hidden');
+            gameScreen.classList.add('hidden');
+            rangeModal.classList.add('hidden');
+            endGameModal.classList.add('hidden');
+            
+            if (screen === 'main') mainMenu.classList.remove('hidden');
+            if (screen === 'game') gameScreen.classList.remove('hidden');
+        }
+
+        function openModal(modal) {
+            if(modal === 'range') rangeModal.classList.remove('hidden', 'opacity-0');
+            rangeModal.classList.add('flex');
+            if(modal === 'end') endGameModal.classList.remove('hidden', 'opacity-0');
+            endGameModal.classList.add('flex');
+        }
+        
+        function closeModal(modal) {
+            if(modal === 'range') rangeModal.classList.add('hidden');
+            rangeModal.classList.remove('flex');
+            if(modal === 'end') endGameModal.classList.add('hidden');
+            endGameModal.classList.remove('flex');
+        }
+
+        // --- GAME LOGIC ---
+
+        function setupRangeModal(type) {
+            currentGameType = type;
+            const config = gameData[type];
+            document.getElementById('modal-title').textContent = `Set Range for ${config.title}`;
+            fromSelect.innerHTML = '';
+            toSelect.innerHTML = '';
+
+            let options = [];
+            if (type === 'primes') {
+                options = config.data;
+            } else {
+                for (let i = config.min; i <= config.max; i++) {
+                    options.push(i);
+                }
+            }
+
+            options.forEach(val => {
+                fromSelect.innerHTML += `<option value="${val}">${val}</option>`;
+                toSelect.innerHTML += `<option value="${val}">${val}</option>`;
+            });
+            toSelect.selectedIndex = options.length - 1;
+            openModal('range');
+        }
+        
+        fromSelect.addEventListener('change', () => {
+            if (parseInt(fromSelect.value) > parseInt(toSelect.value)) {
+                toSelect.value = fromSelect.value;
+            }
+        });
+        toSelect.addEventListener('change', () => {
+             if (parseInt(fromSelect.value) > parseInt(toSelect.value)) {
+                fromSelect.value = toSelect.value;
+            }
+        });
+
+
+        function startGame() {
+            closeModal('range');
+            showScreen('game');
+            score = 20;
+            updateScore();
+            userInput = '';
+            updateInputDisplay();
+            
+            const config = gameData[currentGameType];
+            gameTitle.textContent = config.title;
+
+            currentRange.from = parseInt(fromSelect.value);
+            currentRange.to = parseInt(toSelect.value);
+            
+            practiceSet = [];
+            if (currentGameType === 'primes') {
+                 const primeData = gameData.primes.data;
+                 const startIndex = primeData.indexOf(currentRange.from);
+                 const endIndex = primeData.indexOf(currentRange.to);
+                 practiceSet = primeData.slice(startIndex, endIndex + 1);
+            } else {
+                for (let i = currentRange.from; i <= currentRange.to; i++) {
+                    practiceSet.push(i);
+                }
+            }
+            
+            practiceSet.sort(() => Math.random() - 0.5);
+
+            if(currentGameType === 'primes') {
+                keypad.classList.add('hidden');
+                primeQuestionArea.classList.remove('hidden');
+            } else {
+                keypad.classList.remove('hidden');
+                primeQuestionArea.classList.add('hidden');
+            }
+
+            nextQuestion();
+        }
+        
+        function triggerBurstAnimation(xPosition) {
+            const burst = document.createElement('div');
+            burst.classList.add('burst-effect');
+            burst.style.left = xPosition;
+            gameArea.appendChild(burst);
+            burst.addEventListener('animationend', () => burst.remove());
+        }
+
+
+        function nextQuestion() {
+            if (practiceSet.length === 0) {
+                if (!gameScreen.classList.contains('hidden')) endGame();
+                return;
+            }
+            
+            userInput = '';
+            updateInputDisplay();
+            
+            const questionKey = practiceSet.pop();
+            const config = gameData[currentGameType];
+            const answer = config.data[questionKey];
+            currentQuestion = { key: questionKey, answer: answer };
+            
+            if (currentGameType === 'primes') {
+                setupPrimeQuestion(questionKey);
+            } else {
+                createBubble(questionKey);
+            }
+        }
+        
+        function createBubble(key) {
+            const bubble = document.createElement('div');
+            const config = gameData[currentGameType];
+            
+            bubble.textContent = config.format(key);
+            
+            const baseSize = 80;
+            const size = Math.min(baseSize + key * 2, 200);
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            bubble.style.fontSize = `${Math.max(24 - key/10, 16)}px`;
+            
+            bubble.style.animationDuration = `5s`;
+            
+            bubble.classList.add('bubble');
+            const horizontalPosition = `${Math.random() * 80 + 10}%`;
+            bubble.style.left = horizontalPosition;
+            
+            gameArea.appendChild(bubble);
+
+            bubble.addEventListener('animationend', () => {
+                if (!bubble.parentElement) return;
+
+                bubble.style.opacity = '0';
+
+                setTimeout(() => {
+                    if (gameScreen.classList.contains('hidden') || !currentQuestion) return;
+
+                    const isCorrect = parseInt(userInput) === currentQuestion.answer;
+                    
+                    if (isCorrect) {
+                        triggerBurstAnimation(horizontalPosition);
+                    } else {
+                        handleIncorrect();
+                    }
+                    
+                    if (bubble.parentElement) bubble.remove();
+                    nextQuestion();
+
+                }, 1000);
+            });
+        }
+        
+        function setupPrimeQuestion(currentPrime) {
+            const primeData = gameData.primes.data;
+            const currentIndex = primeData.indexOf(currentPrime);
+            
+            const askNext = Math.random() > 0.5;
+            let questionText = '';
+            let correctAnswer;
+
+            if (askNext && currentIndex < primeData.length - 1) {
+                questionText = `What is the NEXT prime after ${currentPrime}?`;
+                correctAnswer = primeData[currentIndex + 1];
+            } else if (!askNext && currentIndex > 0) {
+                questionText = `What is the PREVIOUS prime before ${currentPrime}?`;
+                correctAnswer = primeData[currentIndex - 1];
+            } else { 
+                questionText = `What is the ${currentIndex === 0 ? 'NEXT' : 'PREVIOUS'} prime relative to ${currentPrime}?`;
+                correctAnswer = currentIndex === 0 ? primeData[1] : primeData[primeData.length - 2];
+            }
+            
+            currentQuestion = { key: currentPrime, answer: correctAnswer };
+            primeQuestionEl.textContent = questionText;
+            
+            let options = [correctAnswer];
+            while (options.length < 4) {
+                const randomPrime = primeData[Math.floor(Math.random() * primeData.length)];
+                if (!options.includes(randomPrime)) {
+                    options.push(randomPrime);
+                }
+            }
+            options.sort(() => Math.random() - 0.5);
+            
+            primeOptionsEl.innerHTML = '';
+            options.forEach(opt => {
+                const bubble = document.createElement('button');
+                bubble.textContent = opt;
+                bubble.classList.add('prime-bubble', 'w-20', 'h-20', 'md:w-24', 'md:h-24', 'rounded-full', 'flex', 'items-center', 'justify-center', 'text-2xl', 'font-bold', 'bg-gradient-to-br', 'from-purple-500', 'to-indigo-600');
+                bubble.onclick = () => checkPrimeAnswer(opt);
+                primeOptionsEl.appendChild(bubble);
+            });
+            
+            clearTimeout(primeTimer);
+            primeTimerBar.style.transition = 'none';
+            primeTimerBar.style.width = '100%';
+            
+            setTimeout(() => {
+                primeTimerBar.style.transition = 'width 3s linear';
+                primeTimerBar.style.width = '0%';
+            }, 10);
+            
+            primeTimer = setTimeout(() => {
+                handleIncorrect();
+                nextQuestion();
+            }, 3000);
+        }
+        
+        function checkPrimeAnswer(selectedOption) {
+            clearTimeout(primeTimer);
+            if (selectedOption !== currentQuestion.answer) {
+                 handleIncorrect();
+            }
+            
+            Array.from(primeOptionsEl.children).forEach(child => {
+                const value = parseInt(child.textContent);
+                if (value === currentQuestion.answer) {
+                    child.classList.remove('from-purple-500', 'to-indigo-600');
+                    child.classList.add('from-green-400', 'to-blue-500');
+                } else if (value === selectedOption) {
+                    child.classList.remove('from-purple-500', 'to-indigo-600');
+                    child.classList.add('from-red-500', 'to-orange-500');
+                }
+            });
+
+            setTimeout(nextQuestion, 800);
+        }
+
+        function handleIncorrect() {
+            if (score > 0) {
+                score--;
+                updateScore();
+                document.body.style.backgroundColor = '#5c1c1c';
+                setTimeout(() => document.body.style.backgroundColor = '#1a1a2e', 200);
+            }
+        }
+        
+        function updateScore() {
+            scoreEl.textContent = score;
+        }
+
+        function updateInputDisplay() {
+            inputDisplay.textContent = userInput;
+        }
+
+        function endGame() {
+            const title = document.getElementById('end-game-title');
+            const emoji = document.getElementById('end-game-emoji');
+            const message = document.getElementById('end-game-message');
+
+            if (score === 20) {
+                title.textContent = "Flawless Victory!";
+                emoji.textContent = "🏆";
+                message.textContent = "Perfect score! You're a true Math Whiz. Incredible job!";
+            } else if (practiceSet.length === 0) {
+                title.textContent = "Practice Complete!";
+                emoji.textContent = "🎉";
+                message.textContent = `You've covered all the numbers in your selected range. Your final score is ${score}. Keep practicing!`;
+            }
+            openModal('end');
+        }
+
+
+        // --- EVENT LISTENERS ---
+        mainMenu.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const gameType = e.target.dataset.game;
+                setupRangeModal(gameType);
+            }
+        });
+
+        startGameBtn.addEventListener('click', startGame);
+        closeModalBtn.addEventListener('click', () => closeModal('range'));
+
+        keypad.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON') return;
+            const key = e.target.textContent;
+            const action = e.target.dataset.key;
+
+            if (action === 'backspace') {
+                userInput = userInput.slice(0, -1);
+            } else {
+                if (userInput.length < 10) {
+                    userInput += key;
+                }
+            }
+            updateInputDisplay();
+        });
+        
+        restartBtn.addEventListener('click', () => {
+             closeModal('end');
+             startGame();
+        });
+        
+        exitBtn.addEventListener('click', () => {
+            closeModal('end');
+            showScreen('main');
+        });
+
+        exitGameBtn.addEventListener('click', () => {
+            gameArea.innerHTML = '';
+            clearTimeout(primeTimer);
+            currentQuestion = null;
+            practiceSet = [];
+            showScreen('main');
+        });
+
+    });
+</script>
+
+</body>
+</html>
+
